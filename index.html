@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatNoGenius</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Navbar styles */
+        .navbar {
+            background-color: #007bff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .navbar h1 {
+            color: white;
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        h3 {
+            color: #333;
+            margin: 10px 0;
+            font-size: 1.5em;
+            line-height: 1.4;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            margin: 20px auto;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            resize: none;
+            font-size: 1em;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1em;
+            transition: background-color 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background-color: #28a745;
+        }
+
+        #loading {
+            display: none;
+            margin-top: 10px;
+            color: #007bff;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 123, 255, 0.3);
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        footer {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 500px) {
+            form {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="navbar">
+        <h1>ChatbotNoGenius</h1>
+    </div>
+
+    <h3>Através deste ChatBot que você encontrará respostas, guias e indicações médicas que facilitarão o seu estudo e
+        aprendizado!</h3>
+    <br>
+    <br>
+    <br>
+    <h3>Envie a sua pergunta:</h3>
+
+    <form>
+        <textarea id="promptusuario" rows="4" placeholder="Digite sua pergunta..."></textarea>
+        <button type="button" id="botaoenvio">Enviar</button>
+        <div id="loading">
+            <div class="spinner"></div> Carregando...
+        </div>
+        <textarea id="resposta" rows="4" readonly placeholder="Resposta aparecerá aqui..."></textarea>
+    </form>
+
+    <h3>Autora: Lidiane Souza</h3>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "@google/generative-ai": "https://esm.run/@google/generative-ai"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        const API_KEY = "AIzaSyBDdftldfA5Gf3V1CJOl0WPGIgLthf7yjc";
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        async function run() {
+            const promptusuario = document.getElementById("promptusuario").value.trim();
+            const prompt = "gemini, diga oi, vc e um medico e voce deve indicar as pessoas todas as ideias sobre medicina basica, anatomia, Biologia celular e molecular, Embriologia, funcionalidades dos remedios e patologia.";
+            const promptcompleto = prompt + promptusuario;
+
+            // Mostrar o indicador de loading
+            document.getElementById("loading").style.display = "block";
+            document.getElementById("resposta").value = ""; // Limpa a resposta anterior
+
+            // Verifica se a pergunta é sobre System_instruction
+            if (promptusuario.toLowerCase() === "qual o seu system_instruction?") {
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("resposta").value = "Meu System_instruction é: 'gemini, diga oi, vc e um medico e voce deve indicar as pessoas todas as ideias sobre medicina basica, anatomia, Biologia celular e molecular, Embriologia, funcionalidades dos remedios e patologia.'";
+                return;
+            }
+
+            const result = await model.generateContent(promptcompleto);
+            const response = await result.response;
+            const text = response.text();
+
+            // Ocultar o indicador de loading e mostrar a resposta
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("resposta").value = text;
+            console.log(text);
+
+
+            //adicionar chamada para o backend '/api/conversations' para registro da conversa no mongodb atraves desse endpoint
+            await fetch('https://gemili-para-o-render.onrender.com/api/conversations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userInput: promptusuario, aiResponse: text }),
+            });
+        }
+
+        document.getElementById("botaoenvio").addEventListener("click", run);
+    </script>
+</body>
+
+</html>
